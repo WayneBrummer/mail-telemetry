@@ -1,6 +1,6 @@
 <?php
 
-namespace Qit\MailTracker\Events;
+namespace Pace\MailTelemetry\Events;
 
 use Illuminate\Queue\SerializesModels;
 use Qit\MailTracker\Models\Email;

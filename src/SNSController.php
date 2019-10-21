@@ -1,6 +1,6 @@
 <?php
 
-namespace Qit\MailTracker;
+namespace Pace\MailTelemetry;
 
 use Aws\Sns\Message as SNSMessage;
 use Aws\Sns\MessageValidator as SNSMessageValidator;
@@ -8,8 +8,8 @@ use Event;
 use GuzzleHttp\Client as Guzzle;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Qit\MailTracker\Events\MessageBouncedPermanentlyEvent;
-use Qit\MailTracker\Model\Email;
+use Pace\MailTelemetry\Events\MessageBouncedPermanentlyEvent;
+use Pace\MailTelemetry\Model\Email;
 
 class SNSController extends Controller
 {

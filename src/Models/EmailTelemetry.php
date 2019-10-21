@@ -1,6 +1,6 @@
 <?php
 
-namespace Qit\MailTracker\Models;
+namespace Pace\MailTelemetry\Models;
 
 use Illuminate\Database\Eloquent\Model;
 

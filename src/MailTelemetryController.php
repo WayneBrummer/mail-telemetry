@@ -1,11 +1,11 @@
 <?php
 
-namespace Qit\MailTracker;
+namespace Pace\MailTelemetry;
 
 use App\Http\Controllers\Controller;
-use Qit\MailTracker\Events\EmailEvent;
-use Qit\MailTracker\Models\Email;
-use Qit\MailTracker\Models\EmailTelemetry;
+use Pace\MailTelemetry\Events\EmailEvent;
+use Pace\MailTelemetry\Models\Email;
+use Pace\MailTelemetry\Models\EmailTelemetry;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class MailTrackerController extends Controller

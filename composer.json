@@ -1,6 +1,6 @@
 {
-    "name": "qit/mail-tracker",
-    "description": "Logs mail transactions",
+    "name": "waynebrummer/mail-telemetry",
+    "description": "Logs mail transactions and provides a report for email telemetry.",
     "licence": "MIT",
     "require": {
         "php": "^7.2",
@@ -19,12 +19,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Qit\\MailTracker\\": "src/"
+            "Pace\\MailTelemetry\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Qit\\MailTracker\\Tests\\": "tests/"
+            "Pace\\MailTelemetry\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -36,7 +36,7 @@
         },
         "laravel": {
             "providers": [
-                "Qit\\MailTracker\\MailTrackerServiceProvider"
+                "Pace\\MailTelemetry\\MailTelemetryServiceProvider"
             ]
         }
     }

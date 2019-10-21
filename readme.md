@@ -1,6 +1,6 @@
-# MailTracker
+# Mail Telemetry
 
-MailTracker will hook into all outgoing emails from Laravel and inject a tracking code into it.
+Mail Telemetry will hook into all outgoing emails from Laravel and inject a tracking code into it.
 It will also store the rendered email in the database.
 
 ## Install
@@ -8,13 +8,13 @@ It will also store the rendered email in the database.
 Via Composer
 
 ```bash
-$ composer require qit/mail-tracker
+$ composer require waynebrummer/mail-telemetry
 ```
 
 Publish the config file and migration
 
 ```bash
-$ php artisan vendor:publish --provider="Qit\MailTracker\MailTrackerServiceProvider"
+$ php artisan vendor:publish --provider="Pace\MailTelemetry\MailTelemetryServiceProvider"
 ```
 
 Run the migration
@@ -207,23 +207,19 @@ Note that the headers you are attaching to the email are actually going out with
 
 The following exceptions may be thrown. You may add them to your ignore list in your exception handler, or handle them as you wish.
 
--   jdavidbakr\MailTracker\Exceptions\BadUrlLink - Something went wrong with the url link. Either the base 64 encoded url is bad (this only applies to mail sent through version 2.1) or the email hash was not found to apply the link to.
+- Pace\MailTelemetry\Exceptions\BadUrlLink.
+- - Something went wrong with the url link. 
+  
+  Either the base 64 encoded url is bad (this only applies to mail sent through version 2.1) or the email hash was not found to apply the link to.
 
 ## Amazon SES features
 
-If you use Amazon SES, you can add some additional information to your tracking. To set up the SES callbacks, first set up SES notifications under your domain in the SES control panel. Then subscribe to the topic by going to the admin panel of the notification topic and creating a subscription for the URL you copied from the admin page. The system should immediately respond to the subscription request. If you like, you can use multiple subscriptions (i.e. one for delivery, one for bounces). See above for events that are fired on a failed message. **For added security, it is recommended to set the topic ARN into the mail-tracker config.**
-
-## Views
-
-When you do the php artisan vendor:publish simple views will add to your resources/views/vendor/emailTrakingViews and you can customize.
+If you use Amazon SES, you can add some additional information to your tracking. To set up the SES callbacks, first set up SES notifications under your domain in the SES control panel. Then subscribe to the topic by going to the admin panel of the notification topic and creating a subscription for the URL you copied from the admin page. The system should immediately respond to the subscription request. If you like, you can use multiple subscriptions (i.e. one for delivery, one for bounces). See above for events that are fired on a failed message. **For added security, it is recommended to set the topic ARN into the mail-telemetry config.**
 
 ## Admin Panel
 
-MailTracker comes with a built-in administration area. The default configuration that is published with the package puts it behind the `can:see-sent-emails` middleware; you may create a gate for this rule or change it to use one of your own. You may also change the default prefix as well as disable the admin routes completely.
-
-The route name is 'mailTracker_Index'. The standard admin panel route is located at /email-manager. You can use route names to include them into your existing admin menu. You can customize your route in the config file. You can see all sent emails, total opens, total urls clicks, show individuals emails and show the urls clicked details.
-
-All views (email tamplates, panel) can be customized in resources/views/vendor/emailTrakingViews.
+WIP
+is more of a authed route.
 
 ## Contributing
 
@@ -231,27 +227,12 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) and [CONDUCT](CONDUCT.md) for details
 
 ## Security
 
-If you discover any security related issues, please email me@jdavidbaker.com instead of using the issue tracker.
+If you discover any security related issues, please email @wayne.brummer instead of using the issue tracker.
 
 ## Credits
 
--   [J David Baker][link-author]
--   [All Contributors][link-contributors]
+- [J David Baker][link-author] for the initial idea.
 
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
-
-[ico-version]: https://img.shields.io/packagist/v/jdavidbakr/mail-tracker.svg?style=flat-square
-[ico-license]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square
-[ico-travis]: https://img.shields.io/travis/jdavidbakr/mail-tracker/master.svg?style=flat-square
-[ico-scrutinizer]: https://img.shields.io/scrutinizer/coverage/g/jdavidbakr/MailTracker.svg?style=flat-square
-[ico-code-quality]: https://img.shields.io/scrutinizer/g/jdavidbakr/MailTracker.svg?style=flat-square
-[ico-downloads]: https://img.shields.io/packagist/dt/jdavidbakr/mail-tracker.svg?style=flat-square
-[link-packagist]: https://packagist.org/packages/jdavidbakr/mail-tracker
-[link-travis]: https://travis-ci.org/jdavidbakr/mail-tracker
-[link-scrutinizer]: https://scrutinizer-ci.com/g/jdavidbakr/MailTracker/code-structure
-[link-code-quality]: https://scrutinizer-ci.com/g/jdavidbakr/MailTracker
-[link-downloads]: https://packagist.org/packages/jdavidbakr/mail-tracker
-[link-author]: https://github.com/jdavidbakr
-[link-contributors]: ../../contributors

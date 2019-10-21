@@ -1,10 +1,10 @@
 <?php
 
-namespace Qit\MailTracker;
+namespace Pace\MailTelemetry;
 
 use Illuminate\Support\ServiceProvider;
 
-class MailTrackerServiceProvider extends ServiceProvider
+class MailTelemetryServiceProvider extends ServiceProvider
 {
     public function boot()
     {
@@ -16,13 +16,13 @@ class MailTrackerServiceProvider extends ServiceProvider
         }
 
         // $this->registerSwiftPlugin();
-        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTracker());
+        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTelemetry());
     }
 
     protected function publishConfig()
     {
         $this->publishes([
-            __DIR__ . '/../config/mail-tracker.php' => config_path('mail-tracker.php'),
+            __DIR__ . '/../config/mail-telemetry.php' => config_path('mail-telemetry.php'),
         ], 'config');
     }
 
