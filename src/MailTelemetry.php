@@ -1,13 +1,13 @@
 <?php
 
-namespace Qit\MailTracker;
+namespace Pace\MailTelemetry;
 
 use Illuminate\Support\Str;
-use Qit\MailTracker\Events\EmailEvent;
-use Qit\MailTracker\Models\Email;
-use Qit\MailTracker\Models\EmailTelemetry;
+use Pace\MailTelemetry\Events\EmailEvent;
+use Pace\MailTelemetry\Models\Email;
+use Pace\MailTelemetry\Models\EmailTelemetry;
 
-class MailTracker implements \Swift_Events_SendListener
+class MailTelemetry implements \Swift_Events_SendListener
 {
     protected $hash;
 
