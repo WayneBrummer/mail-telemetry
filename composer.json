@@ -1,7 +1,16 @@
 {
     "name": "waynebrummer/mail-telemetry",
     "description": "Logs mail transactions and provides a report for email telemetry.",
-    "licence": "MIT",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": [
+        "api",
+        "laravel",
+        "lumen",
+        "email",
+        "tracker",
+        "telemetry"
+    ],
     "require": {
         "php": "^7.2",
         "guzzlehttp/guzzle": "^6.3",
