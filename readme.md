@@ -15,7 +15,7 @@ composer require waynebrummer/mail-telemetry
 Publish the config file and migration:
 
 ```bash
-php artisan vendor:publish --provider="Pace\MailTelemetry\Providers\ServiceProvider"
+php artisan vendor:publish --provider="Pace\MailTelemetry\ServiceProvider"
 ```
 
 Run the migration:
