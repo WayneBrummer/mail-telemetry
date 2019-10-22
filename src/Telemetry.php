@@ -2,12 +2,12 @@
 
 namespace Pace\MailTelemetry;
 
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Pace\MailTelemetry\Events\EmailEvent;
 use Pace\MailTelemetry\Models\Email;
-use Pace\MailTelemetry\Models\EmailTelemetry;
 
-class MailTelemetry implements \Swift_Events_SendListener
+class Telemetry implements \Swift_Events_SendListener
 {
     protected $hash;
 
@@ -15,7 +15,6 @@ class MailTelemetry implements \Swift_Events_SendListener
     {
         $message = $evt->getMessage();
         $this->createTrackers($message);
-        $this->purgeOldRecords();
     }
 
     public function sendPerformed(\Swift_Events_SendEvent $evt)
@@ -26,10 +25,16 @@ class MailTelemetry implements \Swift_Events_SendListener
         }
     }
 
-    public static function hash_url($url)
+    public static function decryptUrl($url)
+    {
+        // Replace "$" with "$"
+        return Crypt::decryptString(\str_replace('/', '$', $url));
+    }
+
+    public static function cryptUrl($url)
     {
         // Replace "/" with "$"
-        return \str_replace('/', '$', \base64_encode($url));
+        return \str_replace('/', '$', Crypt::encryptString($url));
     }
 
     protected function updateSesMessageId($message)
@@ -48,11 +53,11 @@ class MailTelemetry implements \Swift_Events_SendListener
 
     protected function addTrackers($html, $hash)
     {
-        // if (config('mail-tracker.pixel')) {
-        //     $html = $this->injectTrackingPixel($html, $hash);
-        // }
+        if (config('mail-telemetry.pixel')) {
+            $html = $this->injectTrackingPixel($html, $hash);
+        }
 
-        if (config('mail-tracker.links')) {
+        if (config('mail-telemetry.links')) {
             $html = $this->injectTrackingLink($html, $hash);
         }
 
@@ -81,7 +86,11 @@ class MailTelemetry implements \Swift_Events_SendListener
     protected function injectTrackingLink($html, $hash)
     {
         $this->hash = $hash;
-        $html       = \preg_replace_callback("/(<a[^>]*href=['\"])([^'\"]*)/", [$this, 'inject_link_callback'], $html);
+        $html       = \preg_replace_callback(
+            "/(<a[^>]*href=['\"])([^'\"]*)/",
+            [$this, 'inject_link_callback'],
+            $html
+        );
 
         return $html;
     }
@@ -94,7 +103,10 @@ class MailTelemetry implements \Swift_Events_SendListener
             $url = \str_replace('&amp;', '&', $matches[2]);
         }
 
-        return $matches[1] . route('link_route', ['hash' => $this->hash, 'url' => \urlencode($url)]);
+        return $matches[1] . route(
+            'link_route',
+            ['hash' => $this->hash, 'url' => $this->cryptUrl($url)]
+        );
     }
 
     protected function createTrackers($message)
@@ -139,7 +151,9 @@ class MailTelemetry implements \Swift_Events_SendListener
                     'sender'     => $from_name . ' <' . $from_email . '>',
                     'recipient'  => $to_name . ' <' . $to_email . '>',
                     'subject'    => $subject,
-                    'content'    => config('mail-tracker.log-content', true) ? (\strlen($original_content) > 65535 ? \substr($original_content, 0, 65532) . '...' : $original_content) : null,
+                    'content'    => config('mail-telemetry.log-content', true) ?
+                    (\strlen($original_content) > 65535 ? \substr($original_content, 0, 65532)
+                    . '...' : $original_content) : null,
                     'opens'      => 0,
                     'clicks'     => 0,
                     'message_id' => $message->getId(),
@@ -148,22 +162,6 @@ class MailTelemetry implements \Swift_Events_SendListener
 
                 event(new EmailEvent($tracker));
             }
-        }
-    }
-
-    /**
-     * Purge old records in the database.
-     */
-    protected function purgeOldRecords()
-    {
-        if (config('mail-tracker.expire-days') > 0) {
-            $emails = Email::where('created_at', '<', \Carbon\Carbon::now()
-                ->subDays(config('mail-tracker.expire-days')))
-                ->select('id')
-                ->get();
-
-            EmailTelemetry::whereIn('sent_email_id', $emails->pluck('id'))->delete();
-            Email::whereIn('id', $emails->pluck('id'))->delete();
         }
     }
 }

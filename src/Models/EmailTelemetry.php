@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmailTelemetry extends Model
 {
     protected $fillable = [
-        'email_id',
+        'sent_email_id',
         'url',
         'hash',
         'clicks',

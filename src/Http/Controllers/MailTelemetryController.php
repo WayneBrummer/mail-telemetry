@@ -1,25 +1,30 @@
 <?php
 
-namespace Pace\MailTelemetry;
+namespace Pace\MailTelemetry\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Response;
 use Pace\MailTelemetry\Events\EmailEvent;
+use Pace\MailTelemetry\Exceptions\IncorrectLink;
 use Pace\MailTelemetry\Models\Email;
 use Pace\MailTelemetry\Models\EmailTelemetry;
+use Pace\MailTelemetry\Telemetry;
 use Spatie\QueryBuilder\QueryBuilder;
+use Symfony\Component\HttpFoundation\Request;
 
-class MailTrackerController extends Controller
+class MailTelemetryController extends Controller
 {
     /**
-     * Undocumented function.
-     *
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * Protected by middleware and by permission guard.
      */
-    public function index(): \Illuminate\Pagination\LengthAwarePaginator
+    public function index()
     {
         return QueryBuilder::for(EmailTelemetry::class)
             ->defaultSort('id')
-            ->jsonPaginate();
+            ->jsonPaginate(
+                config('mail-telemetry.emails-per-page', [])
+            );
     }
 
     public function getPixel($hash)
@@ -52,9 +57,9 @@ class MailTrackerController extends Controller
 
     public function getLinks($hash, $url)
     {
-        $url = \base64_decode(\str_replace('$', '/', $url), true);
+        $url = Telemetry::decryptUrl($url);
         if (\filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new BadUrlLink('Mail hash: ' . $hash);
+            throw new IncorrectLink('Mail hash: ' . $hash);
         }
 
         return $this->linkClicked($url, $hash);
@@ -73,19 +78,18 @@ class MailTrackerController extends Controller
         $tracker = Email::where('hash', $hash)->first();
 
         if ($tracker) {
-            ++$tracker->clicks;
-            $tracker->save();
-            $url = EmailTelemetry::where('url', $url)->where('hash', $hash)->first();
+            $tracker->increment('clicks');
+            $emailTelemetry = EmailTelemetry::where('url', $url)->where('hash', $hash)->first();
 
-            if ($url) {
-                ++$url->clicks;
-                $url->save();
+            if ($emailTelemetry) {
+                $emailTelemetry->increment('clicks');
             } else {
-                $url = EmailTelemetry::create([
+                $data = [
                     'sent_email_id' => $tracker->id,
                     'url'           => $url,
                     'hash'          => $tracker->hash,
-                ]);
+                ];
+                EmailTelemetry::create($data);
             }
 
             Event::dispatch(new EmailEvent($tracker));
@@ -93,6 +97,6 @@ class MailTrackerController extends Controller
             return redirect($url);
         }
 
-        throw new BadUrlLink('Mail hash: ' . $hash);
+        throw new IncorrectLink('Mail hash: ' . $hash);
     }
 }

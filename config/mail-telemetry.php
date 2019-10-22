@@ -15,8 +15,8 @@ return [
     //Auth Routes For telemetry
     'auth-route' => [
         'enabled'     => true,
-        'prefix'      => 'email',
-        'middleware'  => ['api:auth', 'can:emails-list-telemetry'],
+        'prefix'      => 'api/email',
+        'middleware'  => ['auth:api', 'can:emails-list-telemetry'],
     ],
     // Number of emails per page in the admin view
     'emails-per-page' => 30,

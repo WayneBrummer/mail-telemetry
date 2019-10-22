@@ -1,12 +1,16 @@
 <?php
 
+use Exception;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Orchestra\Testbench\Exceptions\Handler;
 use Orchestra\Testbench\TestCase;
-use Qit\MailTracker\Exceptions\BadUrlLink;
-use Qit\MailTracker\MailTracker;
+use Pace\MailTelemetry;
+use Pace\MailTelemetry\Exceptions\IncorrectLink;
+use Pace\MailTelemetry\Models\Email;
+use Pace\MailTelemetry\Models\EmailTelemetry;
 
 class IgnoreExceptions extends Handler
 {
@@ -23,7 +27,7 @@ class IgnoreExceptions extends Handler
         throw $e;
     }
 }
-class MailTrackerTest extends TestCase
+class MailTelemetryTest extends TestCase
 {
     /**
      * Setup the test environment.
@@ -34,25 +38,32 @@ class MailTrackerTest extends TestCase
         $this->artisan('migrate', ['--database' => 'testing']);
     }
 
-    public function testSendMessage()
+    /** @test */
+    public function send_test_mail()
     {
         // Create an old email to purge
-        Config::set('mail-tracker.expire-days', 1);
-        $old_email = \Qit\MailTracker\Model\SentEmail::create([
+        Config::set('mail-telemetry.expire-days', 1);
+        $old_email = Email::create([
             'hash' => Str::random(32),
         ]);
-        $old_url = \Qit\MailTracker\Model\SentEmailUrlClicked::create([
+
+        $old_url = EmailTelemetry::create([
             'sent_email_id' => $old_email->id,
             'hash'          => Str::random(32),
         ]);
+
         // Go into the future to make sure that the old email gets removed
-        \Carbon\Carbon::setTestNow(\Carbon\Carbon::now()->addWeek());
+        \Carbon\Carbon::setTestNow(now()->addWeek());
+
         Event::fake();
+
         $faker   = Faker\Factory::create();
         $email   = $faker->email;
         $subject = $faker->sentence;
         $name    = $faker->firstName . ' ' . $faker->lastName;
+
         \View::addLocation(__DIR__);
+
         \Mail::send('email.test', [], function ($message) use ($email, $subject, $name) {
             $message->from('from@johndoe.com', 'From Name');
             $message->sender('sender@johndoe.com', 'Sender Name');
@@ -63,13 +74,16 @@ class MailTrackerTest extends TestCase
             $message->subject($subject);
             $message->priority(3);
         });
-        Event::assertDispatched(Qit\MailTracker\Events\EmailSentEvent::class);
-        $this->assertDatabaseHas('sent_emails', [
+
+        Event::assertDispatched(Pace\MailTelemetry\Events\EmailEvent::class);
+
+        $this->assertDatabaseHas('emails', [
             'recipient' => $name . ' <' . $email . '>',
             'subject'   => $subject,
             'sender'    => 'From Name <from@johndoe.com>',
             'recipient' => "{$name} <{$email}>",
         ]);
+
         $this->assertNull($old_email->fresh());
         $this->assertNull($old_url->fresh());
     }
@@ -159,35 +173,35 @@ class MailTrackerTest extends TestCase
      */
     public function testPing()
     {
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         Event::fake();
         $pings = $track->opens;
         ++$pings;
-        $url      = route('mailTracker_t', [$track->hash]);
+        $url      = route('pixel_route', [$track->hash]);
         $response = $this->get($url);
         $track    = $track->fresh();
         $this->assertEquals($pings, $track->opens);
-        Event::assertDispatched(Qit\MailTracker\Events\ViewEmailEvent::class);
+        Event::assertDispatched(Pace\MailTelemetry\Events\ViewEmailEvent::class);
     }
 
     public function testLegacyLink()
     {
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         Event::fake();
         $clicks = $track->clicks;
         ++$clicks;
         $redirect = 'http://' . Str::random(15) . '.com/' . Str::random(10) . '/' . Str::random(10) . '/' . \rand(0, 100) . '/' . \rand(0, 100) . '?page=' . \rand(0, 100) . '&x=' . Str::random(32);
-        $url      = route('mailTracker_l', [
-            \Qit\MailTracker\MailTracker::hash_url($redirect), // Replace slash with dollar sign
+        $url      = route('link_route', [
+            \Pace\MailTelemetry::hash_url($redirect), // Replace slash with dollar sign
             $track->hash,
         ]);
         $response = $this->get($url);
         $response->assertRedirect($redirect);
-        Event::assertDispatched(Qit\MailTracker\Events\LinkClickedEvent::class);
+        Event::assertDispatched(Pace\MailTelemetry\Events\LinkClickedEvent::class);
         $this->assertDatabaseHas('sent_emails_url_clicked', [
             'url'    => $redirect,
             'clicks' => 1,
@@ -196,7 +210,7 @@ class MailTrackerTest extends TestCase
 
     public function testLink()
     {
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         Event::fake();
@@ -209,7 +223,7 @@ class MailTrackerTest extends TestCase
         ]);
         $response = $this->get($url);
         $response->assertRedirect($redirect);
-        Event::assertDispatched(Qit\MailTracker\Events\LinkClickedEvent::class);
+        Event::assertDispatched(Pace\MailTelemetry\Events\LinkClickedEvent::class);
         $this->assertDatabaseHas('sent_emails_url_clicked', [
             'url'    => $redirect,
             'clicks' => 1,
@@ -222,8 +236,8 @@ class MailTrackerTest extends TestCase
     public function it_throws_exception_on_invalid_link()
     {
         $this->disableExceptionHandling();
-        $this->expectException(BadUrlLink::class);
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $this->expectException(IncorrectLink::class);
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         Event::fake();
@@ -245,8 +259,8 @@ class MailTrackerTest extends TestCase
     public function random_string_in_link_does_not_crash(Type $var = null)
     {
         $this->disableExceptionHandling();
-        $this->expectException(BadUrlLink::class);
-        $url = route('mailTracker_l', [
+        $this->expectException(IncorrectLink::class);
+        $url = route('link_route', [
             Str::random(32),
             'the-mail-hash',
         ]);
@@ -308,10 +322,10 @@ class MailTrackerTest extends TestCase
                 'getId'          => 'message-id',
             ]),
         ]);
-        $tracker = new \Qit\MailTracker\MailTracker();
+        $tracker = new \Pace\MailTelemetry();
         $tracker->beforeSendPerformed($event);
         $tracker->sendPerformed($event);
-        $sent_email = \Qit\MailTracker\Model\SentEmail::orderBy('id', 'desc')->first();
+        $sent_email = \Pace\MailTelemetry\Models\Email::orderBy('id', 'desc')->first();
         $this->assertEquals('aws-mailer-hash', $sent_email->message_id);
     }
 
@@ -324,7 +338,7 @@ class MailTrackerTest extends TestCase
      */
     public function it_confirms_a_subscription()
     {
-        $url      = action('\Qit\MailTracker\SNSController@callback');
+        $url      = action('\Pace\MailTelemetry\SNSController@callback');
         $response = $this->post($url, [
             'message' => \json_encode([
                 // Required
@@ -350,8 +364,8 @@ class MailTrackerTest extends TestCase
     public function it_processes_with_registered_topic()
     {
         $topic = Str::random(32);
-        Config::set('mail-tracker.sns-topic', $topic);
-        $url      = action('\Qit\MailTracker\SNSController@callback');
+        Config::set('mail-telemetry.sns-topic', $topic);
+        $url      = action('\Pace\MailTelemetry\SNSController@callback');
         $response = $this->post($url, [
             'message' => \json_encode([
                 // Required
@@ -377,8 +391,8 @@ class MailTrackerTest extends TestCase
     public function it_ignores_invalid_topic()
     {
         $topic = Str::random(32);
-        Config::set('mail-tracker.sns-topic', $topic);
-        $url      = action('\Qit\MailTracker\SNSController@callback');
+        Config::set('mail-telemetry.sns-topic', $topic);
+        $url      = action('\Pace\MailTelemetry\SNSController@callback');
         $response = $this->post($url, [
             'message' => \json_encode([
                 // Required
@@ -403,13 +417,13 @@ class MailTrackerTest extends TestCase
      */
     public function it_processes_a_delivery()
     {
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         $message_id        = Str::random(32);
         $track->message_id = $message_id;
         $track->save();
-        $response = $this->post(action('\Qit\MailTracker\SNSController@callback'), [
+        $response = $this->post(action('\Pace\MailTelemetry\SNSController@callback'), [
             'message' => \json_encode([
                 // Required
                 'Message' => \json_encode([
@@ -453,13 +467,13 @@ class MailTrackerTest extends TestCase
     public function it_processes_a_bounce()
     {
         Event::fake();
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         $message_id        = Str::random(32);
         $track->message_id = $message_id;
         $track->save();
-        $response = $this->post(action('\Qit\MailTracker\SNSController@callback'), [
+        $response = $this->post(action('\Pace\MailTelemetry\SNSController@callback'), [
             'message' => \json_encode([
                 // Required
                 'Message' => \json_encode([
@@ -501,7 +515,7 @@ class MailTrackerTest extends TestCase
         $track = $track->fresh();
         $meta  = $track->meta;
         $this->assertFalse($meta->get('success'));
-        Event::assertDispatched(Qit\MailTracker\Events\PermanentBouncedMessageEvent::class, function ($event) {
+        Event::assertDispatched(Pace\MailTelemetry\Events\PermanentBouncedMessageEvent::class, function ($event) {
             return $event->email_address === 'recipient@example.com';
         });
     }
@@ -512,13 +526,13 @@ class MailTrackerTest extends TestCase
     public function it_processes_a_complaint()
     {
         Event::fake();
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         $message_id        = Str::random(32);
         $track->message_id = $message_id;
         $track->save();
-        $response = $this->post(action('\Qit\MailTracker\SNSController@callback'), [
+        $response = $this->post(action('\Pace\MailTelemetry\SNSController@callback'), [
             'message' => \json_encode([
                 // Required
                 'Message' => \json_encode([
@@ -558,7 +572,7 @@ class MailTrackerTest extends TestCase
         $track = $track->fresh();
         $meta  = $track->meta;
         $this->assertFalse($meta->get('success'));
-        Event::assertDispatched(Qit\MailTracker\Events\PermanentBouncedMessageEvent::class, function ($event) {
+        Event::assertDispatched(Pace\MailTelemetry\Events\PermanentBouncedMessageEvent::class, function ($event) {
             return $event->email_address === 'recipient@example.com';
         });
     }
@@ -571,12 +585,12 @@ class MailTrackerTest extends TestCase
     public function it_handles_ampersands_in_links()
     {
         Event::fake();
-        Config::set('mail-tracker.track-links', true);
-        Config::set('mail-tracker.inject-pixel', true);
+        Config::set('mail-telemetry.links', true);
+        Config::set('mail-telemetry.pixel', true);
         Config::set('mail.driver', 'array');
         (new Illuminate\Mail\MailServiceProvider(app()))->register();
-        // Must re-register the MailTracker to get the test to work
-        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTracker());
+        // Must re-register the MailTelemetry to get the test to work
+        $this->app['mailer']->getSwiftMailer()->registerPlugin(new MailTelemetry());
         $faker   = Faker\Factory::create();
         $email   = $faker->email;
         $subject = $faker->sentence;
@@ -606,12 +620,12 @@ class MailTrackerTest extends TestCase
         $this->assertNotEquals($expected_url, $aLink);
         $response = $this->call('GET', $aLink);
         $response->assertRedirect($expected_url);
-        Event::assertDispatched(Qit\MailTracker\Events\LinkClickedEvent::class);
+        Event::assertDispatched(Pace\MailTelemetry\Events\LinkClickedEvent::class);
         $this->assertDatabaseHas('sent_emails_url_clicked', [
             'url'    => $expected_url,
             'clicks' => 1,
         ]);
-        $track = \Qit\MailTracker\Model\SentEmail::whereHash($hash)->first();
+        $track = \Pace\MailTelemetry\Models\Email::whereHash($hash)->first();
         $this->assertNotNull($track);
         $this->assertEquals(1, $track->clicks);
     }
@@ -638,7 +652,7 @@ class MailTrackerTest extends TestCase
             $message->priority(3);
             $message->getHeaders()->addTextHeader('X-Header-Test', $header_test);
         });
-        $track = \Qit\MailTracker\Model\SentEmail::orderBy('id', 'desc')->first();
+        $track = \Pace\MailTelemetry\Models\Email::orderBy('id', 'desc')->first();
         $this->assertEquals($header_test, $track->getHeader('X-Header-Test'));
     }
 
@@ -648,14 +662,14 @@ class MailTrackerTest extends TestCase
     public function it_handles_secondary_connection()
     {
         // Create an old email to purge
-        Config::set('mail-tracker.expire-days', 1);
-        Config::set('mail-tracker.connection', 'secondary');
+        Config::set('mail-telemetry.expire-days', 1);
+        Config::set('mail-telemetry.connection', 'secondary');
         $this->app['migrator']->setConnection('secondary');
         $this->artisan('migrate', ['--database' => 'secondary']);
-        $old_email = \Qit\MailTracker\Model\SentEmail::create([
+        $old_email = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
-        $old_url = \Qit\MailTracker\Model\SentEmailUrlClicked::create([
+        $old_url = \Pace\MailTelemetry\Models\EmailUrlClicked::create([
             'sent_email_id' => $old_email->id,
             'hash'          => Str::random(32),
         ]);
@@ -677,7 +691,7 @@ class MailTrackerTest extends TestCase
             $message->subject($subject);
             $message->priority(3);
         });
-        Event::assertDispatched(Qit\MailTracker\Events\EmailSentEvent::class);
+        Event::assertDispatched(Pace\MailTelemetry\Events\EmailSentEvent::class);
         $this->assertDatabaseHas('sent_emails', [
             'recipient' => $name . ' <' . $email . '>',
             'subject'   => $subject,
@@ -693,13 +707,13 @@ class MailTrackerTest extends TestCase
     public function it_can_retrieve_url_clicks_from_eloquent()
     {
         Event::fake();
-        $track = \Qit\MailTracker\Model\SentEmail::create([
+        $track = \Pace\MailTelemetry\Models\Email::create([
             'hash' => Str::random(32),
         ]);
         $message_id        = Str::random(32);
         $track->message_id = $message_id;
         $track->save();
-        $urlClick = \Qit\MailTracker\Model\SentEmailUrlClicked::create([
+        $urlClick = \Pace\MailTelemetry\Models\EmailUrlClicked::create([
             'sent_email_id' => $track->id,
             'url'           => 'https://example.com',
             'hash'          => Str::random(32),
@@ -707,7 +721,7 @@ class MailTrackerTest extends TestCase
         $urlClick->save();
         $this->assertTrue($track->urlClicks->count() === 1);
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $track->urlClicks);
-        $this->assertInstanceOf(\Qit\MailTracker\Model\SentEmailUrlClicked::class, $track->urlClicks->first());
+        $this->assertInstanceOf(\Pace\MailTelemetry\Models\EmailUrlClicked::class, $track->urlClicks->first());
     }
 
     protected function disableExceptionHandling()
@@ -727,7 +741,7 @@ class MailTrackerTest extends TestCase
      */
     protected function getPackageProviders($app)
     {
-        return ['Qit\MailTracker\MailTrackerServiceProvider'];
+        return ['Pace\MailTelemetry\Provider\ServiceProvider'];
     }
 
     /**

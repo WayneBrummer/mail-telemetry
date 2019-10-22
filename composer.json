@@ -28,7 +28,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Pace\\MailTelemetry\\": "src/"
+            "Pace\\MailTelemetry\\": "src"
         }
     },
     "autoload-dev": {
@@ -36,6 +36,7 @@
             "Pace\\MailTelemetry\\Tests\\": "tests/"
         }
     },
+    "minimum-stability": "dev",
     "scripts": {
         "test": "phpunit"
     },
@@ -45,7 +46,7 @@
         },
         "laravel": {
             "providers": [
-                "Pace\\MailTelemetry\\MailTelemetryServiceProvider"
+                "Pace\\MailTelemetry\\ServiceProvider"
             ]
         }
     }

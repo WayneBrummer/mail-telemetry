@@ -1,6 +1,6 @@
 <?php
 
-namespace Pace\MailTelemetry;
+namespace Pace\MailTelemetry\Http\Controllers;
 
 use Aws\Sns\Message as SNSMessage;
 use Aws\Sns\MessageValidator as SNSMessageValidator;
@@ -25,7 +25,7 @@ class SNSController extends Controller
             $validator->validate($message);
         }
         // If we have a topic defined, make sure this is that topic
-        if (config('mail-tracker.sns-topic') && $message->offsetGet('TopicArn') !== config('mail-tracker.sns-topic')) {
+        if (config('mail-telemetry.sns-topic') && $message->offsetGet('TopicArn') !== config('mail-telemetry.sns-topic')) {
             return 'invalid topic ARN';
         }
 

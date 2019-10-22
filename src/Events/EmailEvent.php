@@ -3,7 +3,6 @@
 namespace Pace\MailTelemetry\Events;
 
 use Illuminate\Queue\SerializesModels;
-use Qit\MailTracker\Models\Email;
 
 class EmailEvent
 {
@@ -11,7 +10,7 @@ class EmailEvent
 
     public $email;
 
-    public function __construct(Email $email)
+    public function __construct($email)
     {
         $this->email = $email;
     }
