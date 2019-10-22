@@ -1,12 +1,11 @@
 <?php
 
-namespace Pace\MailTelemetry\Providers;
+namespace Pace\MailTelemetry;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider as IlluminateServiceProvider;
 use Pace\MailTelemetry\Console\PruneCommand;
-use Pace\MailTelemetry\Telemetry;
 
 class ServiceProvider extends IlluminateServiceProvider
 {
