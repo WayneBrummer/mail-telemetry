@@ -80,6 +80,45 @@ This will contain the Notification ID just used.
     // ... other settings here
     $message->getHeaders()->addTextHeader('X-Email-Notification-ID',$this->id);
 });
+```
+or if you love the power of the Notifiable Trait. YOu can change your toMail function to request a Mailable.
+
+```php
+/**
+ * Mailable function returned.
+ *
+ * @param mixed $notifiable
+ *
+ * @return \App\Mail\AssignedToMail
+ */
+public function toMail($notifiable) : \App\Mail\AssignedToMail
+{
+    return new AssignedToMail($notifiable, $this->model, $this->id);
+}
+```
+
+Then in the Mailable you can reference MailMessage class.
+
+The `build` method will then be used to inject the `'X-Email-Notification-ID'` into the email
+
+```php
+/**
+ * Build the message.
+ *
+ * @return $this
+ */
+public function build()
+{
+    $this->withSwiftMessage(function ($message) {
+        $message->getHeaders()->addTextHeader('X-Email-Notification-ID', $this->notification);
+    });
+    return $this->to($this->user->email)
+        ->subject("Assignment: {$this->user->first_name} {$this->user->last_name},")
+        ->markdown('vendor.notifications.email', $this->message->data());
+}
+
+```
+
 ---
 
 ## ***Note on local development testing***
