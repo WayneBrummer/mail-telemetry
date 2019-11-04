@@ -70,6 +70,18 @@ The header will be removed from the email prior to being sent.
 
 ---
 
+** Linking to Notifications table.
+
+If you wish to have an email linked to the Notification model, then you can add the `X-Email-Notification-ID` header to your message.
+This will contain the Notification ID just used.
+
+```php
+\Mail::send('email.test', [], function ($message) {
+    // ... other settings here
+    $message->getHeaders()->addTextHeader('X-Email-Notification-ID',$this->id);
+});
+---
+
 ## ***Note on local development testing***
 
 Several people have reporting the tracking pixel not working while they were testing.

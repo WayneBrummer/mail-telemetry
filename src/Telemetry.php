@@ -14,15 +14,17 @@ class Telemetry implements \Swift_Events_SendListener
     public function beforeSendPerformed(\Swift_Events_SendEvent $evt)
     {
         $message = $evt->getMessage();
+
         $this->createTrackers($message);
     }
 
     public function sendPerformed(\Swift_Events_SendEvent $evt)
     {
+        $message = $evt->getMessage();
         if (config('mail.driver') === 'ses') {
-            $message = $evt->getMessage();
             $this->updateSesMessageId($message);
         }
+        $this->updateNotificationId($message);
     }
 
     public static function decryptUrl($url)
@@ -41,12 +43,24 @@ class Telemetry implements \Swift_Events_SendListener
     {
         // Get the Email object
         $headers    = $message->getHeaders();
-
         $hash       = optional($headers->get('X-Mailer-Hash'))->getFieldBody();
 
         // Get info about the message-id from SES
         if ($email = Email::where('hash', $hash)->first()) {
             $email->message_id = $headers->get('X-SES-Message-ID')->getFieldBody();
+            $email->save();
+        }
+    }
+
+    protected function updateNotificationId($message)
+    {
+        // Get the Email object
+        $headers    = $message->getHeaders();
+        $hash       = optional($headers->get('X-Mailer-Hash'))->getFieldBody();
+
+        // Get notification ID From header.
+        if ($email = Email::where('hash', $hash)->first()) {
+            $email->notification_id = $headers->get('X-Email-Notification-ID')->getFieldBody();
             $email->save();
         }
     }

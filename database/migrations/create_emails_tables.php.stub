@@ -19,6 +19,7 @@ class CreateEmailsTables extends Migration
             $table->integer('opens')->nullable();
             $table->integer('clicks')->nullable();
             $table->string('message_id')->nullable();
+            $table->string('notification_id')->nullable();
             $table->text('meta')->nullable();
             $table->timestamps();
         });
