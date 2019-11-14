@@ -47,7 +47,7 @@ class Telemetry implements \Swift_Events_SendListener
 
         // Get info about the message-id from SES
         if ($email = Email::where('hash', $hash)->first()) {
-            $email->message_id = $headers->get('X-SES-Message-ID')->getFieldBody();
+            $email->message_id = $headers->get('X-SES-Message-ID')->getFieldBody() ?? null;
             $email->save();
         }
     }
@@ -60,7 +60,7 @@ class Telemetry implements \Swift_Events_SendListener
 
         // Get notification ID From header.
         if ($email = Email::where('hash', $hash)->first()) {
-            $email->notification_id = $headers->get('X-Email-Notification-ID')->getFieldBody();
+            $email->notification_id = $headers->get('X-Email-Notification-ID')->getFieldBody() ?? null;
             $email->save();
         }
     }
