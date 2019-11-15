@@ -21,6 +21,7 @@ class Telemetry implements \Swift_Events_SendListener
     public function sendPerformed(\Swift_Events_SendEvent $evt)
     {
         $message = $evt->getMessage();
+
         if (config('mail.driver') === 'ses') {
             $this->updateSesMessageId($message);
         }
@@ -60,7 +61,8 @@ class Telemetry implements \Swift_Events_SendListener
 
         // Get notification ID From header.
         if ($email = Email::where('hash', $hash)->first()) {
-            $email->notification_id = $headers->get('X-Email-Notification-ID')->getFieldBody() ?? null;
+            $email->notification_id = optional($headers->get('X-Email-Notification-ID'))
+                ->getFieldBody();
             $email->save();
         }
     }
