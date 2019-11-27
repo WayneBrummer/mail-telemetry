@@ -22,10 +22,14 @@ class Telemetry implements \Swift_Events_SendListener
     {
         $message = $evt->getMessage();
 
+        // Get the Email object
+        $headers = $message->getHeaders();
+        $hash    = optional($headers->get('X-Mailer-Hash'))->getFieldBody();
+
         if (config('mail.driver') === 'ses') {
-            $this->updateSesMessageId($message);
+            $this->updateSesMessageId($message, $hash, $headers);
         }
-        $this->updateNotificationId($message);
+        $this->updateNotificationId($message, $hash, $headers);
     }
 
     public static function decryptUrl($url)
@@ -40,12 +44,8 @@ class Telemetry implements \Swift_Events_SendListener
         return \str_replace('/', '$', Crypt::encryptString($url));
     }
 
-    protected function updateSesMessageId($message)
+    protected function updateSesMessageId($message, $hash, $headers)
     {
-        // Get the Email object
-        $headers    = $message->getHeaders();
-        $hash       = optional($headers->get('X-Mailer-Hash'))->getFieldBody();
-
         // Get info about the message-id from SES
         if ($email = Email::where('hash', $hash)->first()) {
             $email->message_id = $headers->get('X-SES-Message-ID')->getFieldBody() ?? null;
@@ -53,16 +53,14 @@ class Telemetry implements \Swift_Events_SendListener
         }
     }
 
-    protected function updateNotificationId($message)
+    protected function updateNotificationId($message, $hash, $headers)
     {
-        // Get the Email object
-        $headers    = $message->getHeaders();
-        $hash       = optional($headers->get('X-Mailer-Hash'))->getFieldBody();
-
         // Get notification ID From header.
         if ($email = Email::where('hash', $hash)->first()) {
-            $email->notification_id = optional($headers->get('X-Email-Notification-ID'))
-                ->getFieldBody();
+            try {
+                $email->notification_id = $headers->get('X-Email-Notification-ID')->getFieldBody();
+            } catch (\Throwable $th) {
+            }
             $email->save();
         }
     }
