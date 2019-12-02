@@ -25,6 +25,11 @@ class Email extends Model
 
     public function urlTelemetry()
     {
-        return $this->hasMany(EmailTelemetry::class);
+        return $this->hasMany(EmailTelemetry::class, 'sent_email_id');
+    }
+
+    public function getUrlTelemetryAttribute()
+    {
+        return $this->urlTelemetry()->get();
     }
 }

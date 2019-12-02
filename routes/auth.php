@@ -2,4 +2,5 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', 'MailTelemetryController@index')->name('email_telemetry');
+Route::get('/', 'MailController@index')->name('email_index');
+Route::get('/{id}', 'MailController@show')->name('email_telemetry');

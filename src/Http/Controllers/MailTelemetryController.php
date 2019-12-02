@@ -10,23 +10,10 @@ use Pace\MailTelemetry\Exceptions\IncorrectLink;
 use Pace\MailTelemetry\Models\Email;
 use Pace\MailTelemetry\Models\EmailTelemetry;
 use Pace\MailTelemetry\Telemetry;
-use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\Request;
 
 class MailTelemetryController extends Controller
 {
-    /**
-     * Protected by middleware and by permission guard.
-     */
-    public function index()
-    {
-        return QueryBuilder::for(EmailTelemetry::class)
-            ->defaultSort('id')
-            ->jsonPaginate(
-                config('mail-telemetry.emails-per-page', [])
-            );
-    }
-
     public function getPixel($hash)
     {
         $pixel = \base64_decode(
@@ -58,11 +45,13 @@ class MailTelemetryController extends Controller
     public function getLinks($hash, $url)
     {
         $url = Telemetry::decryptUrl($url);
+
         if (\filter_var($url, FILTER_VALIDATE_URL) === false) {
             throw new IncorrectLink('Mail hash: ' . $hash);
         }
+        $this->linkClicked($url, $hash);
 
-        return $this->linkClicked($url, $hash);
+        return redirect($url);
     }
 
     public function getClicked(Request $request)
@@ -92,9 +81,9 @@ class MailTelemetryController extends Controller
                 EmailTelemetry::create($data);
             }
 
-            Event::dispatch(new EmailEvent($tracker));
+            event(new EmailEvent($tracker));
 
-            return redirect($url);
+            return;
         }
 
         throw new IncorrectLink('Mail hash: ' . $hash);
