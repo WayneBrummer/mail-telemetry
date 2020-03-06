@@ -1,53 +1,53 @@
 {
-    "name": "waynebrummer/mail-telemetry",
-    "description": "Logs mail transactions and provides a report for email telemetry.",
-    "type": "library",
-    "license": "Apache-2.0",
-    "keywords": [
-        "api",
-        "laravel",
-        "lumen",
-        "email",
-        "tracker",
-        "telemetry"
-    ],
-    "require": {
-        "php": "^7.2",
-        "guzzlehttp/guzzle": "^6.3",
-        "aws/aws-php-sns-message-validator": "^1.5",
-        "spatie/laravel-query-builder": "^2.1",
-        "spatie/laravel-json-api-paginate": "^1.6"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "~8.0",
-        "orchestra/testbench": "~4.0",
-        "mockery/mockery": "^1.1"
-    },
-    "suggest": {
-        "fedeisas/laravel-mail-css-inliner": "Automatically in-lines CSS into all outgoing mail."
-    },
-    "autoload": {
-        "psr-4": {
-            "Pace\\MailTelemetry\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Pace\\MailTelemetry\\Tests\\": "tests/"
-        }
-    },
-    "minimum-stability": "dev",
-    "scripts": {
-        "test": "phpunit"
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "1.0-dev"
-        },
-        "laravel": {
-            "providers": [
-                "Pace\\MailTelemetry\\ServiceProvider"
-            ]
-        }
+  "name": "waynebrummer/mail-telemetry",
+  "description": "Logs mail transactions and provides a report for email telemetry.",
+  "type": "library",
+  "license": "Apache-2.0",
+  "keywords": [
+    "api",
+    "laravel",
+    "lumen",
+    "email",
+    "tracker",
+    "telemetry"
+  ],
+  "require": {
+    "php": "^7.2",
+    "guzzlehttp/guzzle": "^6.3",
+    "aws/aws-php-sns-message-validator": "^1.5",
+    "spatie/laravel-query-builder": "^2.8",
+    "spatie/laravel-json-api-paginate": "^1.7"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9",
+    "orchestra/testbench": "~4.0",
+    "mockery/mockery": "^1.1"
+  },
+  "suggest": {
+    "fedeisas/laravel-mail-css-inliner": "Automatically in-lines CSS into all outgoing mail."
+  },
+  "autoload": {
+    "psr-4": {
+      "Pace\\MailTelemetry\\": "src"
     }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Pace\\MailTelemetry\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "dev",
+  "scripts": {
+    "test": "phpunit"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "1.0-dev"
+    },
+    "laravel": {
+      "providers": [
+        "Pace\\MailTelemetry\\ServiceProvider"
+      ]
+    }
+  }
 }
