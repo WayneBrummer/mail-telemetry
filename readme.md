@@ -1,4 +1,4 @@
-# Laravel 6 Mail Telemetry
+# Laravel Mail Telemetry
 
 Mail Telemetry will hook into all outgoing emails (unless otherwise stated) from Laravel and inject a tracking pixel and links into it.
 
